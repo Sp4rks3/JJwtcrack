@@ -9,6 +9,10 @@ import (
 
 func checkWeakKey(jwtToken string, weakKey string) {
 	decodedKey, err := base64.StdEncoding.DecodeString(weakKey)
+	if err != nil {
+		// If the weak key isn't valid base64, fall back to the raw string.
+		decodedKey = []byte(weakKey)
+	}
 
 	// 创建一个 JWT 解析器
 	token, err := jwt.Parse(jwtToken, func(token *jwt.Token) (interface{}, error) {
@@ -18,7 +22,7 @@ func checkWeakKey(jwtToken string, weakKey string) {
 
 	if err != nil {
 		// 检查是否是因为过期引起的错误
-		if ve, ok := err.(*jwt.ValidationError); ok && ve.Errors == jwt.ValidationErrorExpired {
+		if ve, ok := err.(*jwt.ValidationError); ok && ve.Errors&jwt.ValidationErrorExpired != 0 {
 			claims, _ := token.Claims.(jwt.MapClaims)
 			fmt.Printf("[*] Weak key %s successfully decoded the JWT (expired):\n%v\n", weakKey, formatClaims(claims))
 			return
